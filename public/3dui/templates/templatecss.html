@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html> 
+  <head> 
+    <title>3D UI with Three.js  and DAT.GUI</title> 
+
+  </head> 
+  
+  <body bgcolor="#000000"> 
+
+        <script type="text/javascript" src="/static/js/three.js"></script>
+	<script type="text/javascript" src="/static/js/dat.gui.js"></script>
+
+<script type="text/javascript">
+
+    // global variables
+var renderer;
+var scene;
+var camera;
+var cameraControl;
+
+
+var InputControls = function() { 
+  this.users = '100000';
+};
+
+
+function       initInputThroughdatGUI() {
+
+
+
+  var text = new InputControls();
+  var gui = new dat.GUI({ autoPlace: false });
+
+  gui.domElement.style.position='absolute';
+  gui.domElement.style.top='185px';
+  gui.domElement.style.left='20px'
+
+  var customContainer = document.getElementById('my-gui-container');
+  customContainer.appendChild(gui.domElement);
+  gui.add(text, 'users');
+
+
+}
+
+
+function    initOutputThroughThreejs() {
+
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        scene = new THREE.Scene();
+
+
+
+
+  var number = document.createElement( 'div' );
+	number.className = 'number';
+	number.textContent = "THREE.JS";
+  object = new THREE.CSS3DObject( number );
+  
+  scene.add(object);
+  
+  renderer = new THREE.CSS3DRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  document.body.appendChild(renderer.domElement);
+
+    
+
+        render();
+
+
+
+}
+
+
+function createCSS3DObject(s) {
+
+    var div = document.createElement('div');
+    div.innerHTML = s;
+    div.style.width = '370px';
+    div.style.height = '370px';
+    div.style.opacity = 0.7;
+    div.style.background = new THREE.Color(Math.random() * 0xffffff).getStyle();
+    var obj = new THREE.CSS3DObject(div);
+    return obj;
+    
+}
+
+function render() {
+        // render using requestAnimationFrame
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(render);
+}
+    
+
+window.onload = function() {
+
+
+   initOutputThroughThreejs();
+   initInputThroughdatGUI();
+  
+};
+
+
+
+</script>
+
+
+
+<div id="my-gui-container">
+</div>
+
+
+  </body> 
+
+</html>
+

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+
+<html>
+  <head> 
+      <title> {{ pagename|title }} </title>
+   </head>
+
+
+  
+  <body bgcolor="#000000"> 
+
+	<script type="text/javascript" src="/static/js/dat.gui.js"></script>
+        <script src="/static/js/three.js"></script>
+        <script src="/static/js/threex.dynamictexture.js"></script>
+<script type="text/javascript">
+
+
+    // global variables
+    var numofapps;
+    var numofdays;
+
+
+    var renderer;
+    var scene;
+    var camera;
+    
+    var cameraControl;
+    
+
+    var cubes;
+    var dailyCubes;
+
+    var cubeIntersection;
+    var cubeUnion;
+    
+    var selectedApps;
+    var r_interactions;    
+    
+
+
+
+
+var InputControls = new function() { 
+
+
+
+    var statsJSON = httpGet("/total.stats");
+    var objStats = JSON.parse(statsJSON); 
+
+
+    this.application1 = false;
+    this.application2 = false;
+    this.application3 = false;
+    this.application4 = false;
+    this.application5 = false;
+    
+    
+    this.users = objStats[0].usercount;
+    this.visits = objStats[1].visitcount;
+
+    this.interactions = objStats[2].interactioncount;
+    r_interactions = objStats[2].interactioncount;
+
+    this.functionality = 0;
+    this.prev_functionality = 0;
+
+    this.timefunction = 0;
+    this.prev_timefunction = 0;
+    
+    };
+    
+
+function       initInputThroughdatGUI() {
+
+
+
+  var text =  InputControls;
+
+
+  var gui = new dat.GUI({ autoPlace: false });
+  gui.domElement.style.position='absolute';
+  gui.domElement.style.top='20px';
+  gui.domElement.style.left='20px'
+  var customContainer = document.getElementById('my-gui-container');
+  customContainer.appendChild(gui.domElement);
+  gui.add(text, 'users');
+  gui.add(text, 'visits');
+    gui.add(text, 'interactions');
+
+
+  var gui2 = new dat.GUI({ autoPlace: false });
+  gui2.domElement.style.position='absolute';
+  gui2.domElement.style.top='185px';
+  gui2.domElement.style.left='20px'
+  var customContainer = document.getElementById('my-gui2-container');
+  customContainer.appendChild(gui2.domElement);
+    
+    var apps1 = gui2.add(text, 'application1');
+    var apps2 = gui2.add(text, 'application2');
+    var apps3 = gui2.add(text, 'application3');
+    var apps4 = gui2.add(text, 'application4');
+    var apps5 = gui2.add(text, 'application5');
+    
+    
+  var gui3 = new dat.GUI({ autoPlace: false });
+  gui3.domElement.style.position='absolute';
+  gui3.domElement.style.top='20px';
+  gui3.domElement.style.left='400px'
+
+  var customContainer3 = document.getElementById('my-gui3-container');
+  customContainer3.appendChild(gui3.domElement);
+  var functionality  = gui3.add(text, 'functionality', { LoggedInUsers: 0, CommonUsers: 1 } );
+
+
+
+
+  var gui4 = new dat.GUI({ autoPlace: false });
+  gui4.domElement.style.position='absolute';
+  gui4.domElement.style.top='20px';
+  gui4.domElement.style.left='700px'
+
+  var customContainer4 = document.getElementById('my-gui4-container');
+  customContainer4.appendChild(gui4.domElement);
+
+    var timefunction=   gui4.add(text, 'timefunction', { Total: 0, Daily: 1, Hourly: 2 } );
+
+
+
+    functionality.onFinishChange(function(value) {
+        cleanOldCubes(InputControls.prev_functionality, InputControls.timefunction);
+        InputControls.prev_functionality = value;
+        drawNewCubes(value, InputControls.timefunction);
+    });
+
+
+    timefunction.onFinishChange(function(value) {
+
+        cleanOldCubes(InputControls.functionality, InputControls.prev_timefunction);
+        InputControls.prev_timefunction = value;
+
+        drawNewCubes(InputControls.functionality, value);
+
+
+
+
+    });
+    
+     
+    apps1.onFinishChange(function(value) {
+    processAddRemoveCube (value, 0);
+    });
+
+
+  apps2.onFinishChange(function(value) {
+    processAddRemoveCube (value, 1);
+    });
+
+
+  apps3.onFinishChange(function(value) {
+    processAddRemoveCube (value, 2);
+    });
+
+  apps4.onFinishChange(function(value) {
+    processAddRemoveCube (value, 3);
+    });
+
+  apps5.onFinishChange(function(value) {
+    processAddRemoveCube (value, 4);
+    });
+
+}
+
+    
+
+
+
+function  cleanOldCubes(b_functionality, b_timefunction) {
+   if (b_functionality == 0) { // logged in user case
+     if (b_timefunction  == 0) {   // total cubes
+        for (var i = 0; i < 5; i++) {
+            scene.remove(cubes[i]);       
+        }
+     }
+    else {
+       if (b_timefunction == 1) { // daily cubes
+
+          for (var i = 0; i < numofapps; i++) {
+             if (selectedApps[i] == 1) {
+                  for (var j = 0; j <  numofdays; j++) {
+                      scene.remove(dailyCubes[i*numofdays + j]);
+                  }
+	     } 		  
+	  }
+       }
+    }
+  }
+  else {     // commonusers case   
+
+	scene.remove(cubeIntersection);
+	scene.remove(cubeUnion);
+  }
+
+}
+    
+
+function    drawNewCubes(b_functionality, b_timefunction) {
+
+  if (b_functionality == 0) { // logged in user case
+     if (b_timefunction  == 0) {
+        for (var i = 0; i < numofapps; i++) {
+             if (selectedApps[i] == 1) {
+                   addRemoveCube (true, i)
+             }
+        }
+     }
+    else {
+
+        for (var i = 0; i < numofapps; i++) {
+             if (selectedApps[i] == 1) {
+                  for (var j = 0; j <  numofdays; j++) {
+
+                       addRemoveDailyCube (true, i*numofdays + j);
+                  }
+	     } 		  
+	}
+    }
+  }
+  else { // commonusers case   
+
+				       alert (buildStringForSelectedApps());
+
+      var statsJSONintersect = httpGet("/intersect.stats?apps="+buildStringForSelectedApps());
+      var objintersect = JSON.parse(statsJSONintersect); 
+      var  dynamicTexturei  = new THREEx.DynamicTexture(512,512)
+      dynamicTexturei.context.font	= "bolder 90px Verdana";
+      dynamicTexturei.clear(cubeColors[0]);
+
+
+      var statsJSONunion = httpGet("/union.stats?apps="+buildStringForSelectedApps());
+      var objunion = JSON.parse(statsJSONunion); 
+      var  dynamicTextureu  = new THREEx.DynamicTexture(512,512)
+      dynamicTextureu.context.font	= "bolder 90px Verdana";
+      dynamicTextureu.clear(cubeColors[1]);
+
+
+
+      var cubeInGeometry = new THREE.BoxGeometry(8, 5, 8);
+      var cubeInMaterial = new THREE.MeshLambertMaterial({map: dynamicTexturei.texture          });
+//      var cubeInMaterial = new THREE.MeshLambertMaterial({color: cubeColors[0]});
+       cubeIntersection  = new THREE.Mesh(cubeInGeometry, cubeInMaterial);
+       cubeIntersection.position.y = 4;
+       cubeIntersection.position.z = 2;
+       cubeIntersection.position.x = 14;
+       cubeIntersection.castShadow = true;
+
+     dynamicTexturei.drawText( objintersect[0].count, 32, 256, 'black');
+     dynamicTexturei.texture.needsUpdate  = true;
+
+       scene.add(cubeIntersection);
+
+      var cubeUnGeometry = new THREE.BoxGeometry(8, 20, 8);
+      var cubeUnMaterial = new THREE.MeshLambertMaterial({map: dynamicTextureu.texture          });
+
+//      var cubeUnMaterial = new THREE.MeshLambertMaterial({color: cubeColors[1]});
+       cubeUnion  = new THREE.Mesh(cubeUnGeometry, cubeUnMaterial);
+       cubeUnion.position.y = 14;
+       cubeUnion.position.z = 2;
+       cubeUnion.position.x = 4;
+       cubeUnion.castShadow = true;
+
+     dynamicTextureu.drawText( objunion[0].count, 32, 256, 'black');
+     dynamicTextureu.texture.needsUpdate  = true;
+
+
+       scene.add(cubeUnion);
+
+  }
+}
+
+function processAddRemoveCube(value, cubeid) {
+    if (value ) {
+      selectedApps[cubeid] = 1;
+    } 
+    else {
+      selectedApps[cubeid] = 0;
+    }
+    addRemoveCube (value, cubeid);
+}
+
+function buildStringForSelectedApps() {
+        var retString = "";
+        var firstSet = 0;
+
+        for (var i = 0; i < numofapps; i++) {
+             if (selectedApps[i] == 1) {
+                if (firstSet == 0) {
+                     retString = i;
+                     firstSet = 1;
+                } 
+                else {
+                 retString+= ":"+i;
+                }
+             }
+        }
+        return retString;
+}
+
+
+
+
+function addRemoveDailyCube (value, cubeidx) {
+    if (value ) {
+
+       var div = Math.floor(cubeidx/numofdays);
+       var rem = cubeidx %numofdays;
+
+
+				       
+      var statsJSON = httpGet("/app.daily.stats?appid="+div+"&day="+rem);
+      var obj = JSON.parse(statsJSON); 
+
+
+      var  dynamicTexture  = new THREEx.DynamicTexture(512,512)
+      dynamicTexture.context.font	= "bolder 90px Verdana";
+      dynamicTexture.clear(cubeColors[Math.floor(cubeidx/numofdays)]);
+
+
+     var  b_userCount = obj[0].usercount;
+     var height = (b_userCount*80)/r_interactions;
+				       
+
+
+      var cubeGeometry = new THREE.BoxGeometry(2, height, 2);
+      var cubeMaterial = new THREE.MeshLambertMaterial({ map : dynamicTexture.texture});
+
+//      var cubeMaterial = new THREE.MeshLambertMaterial({color: cubeColors[Math.floor(cubeidx/numofdays)]});
+      var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+ 
+ 				       
+       cube.position.y = 4 ;
+
+
+       cube.position.x = 2 + 4*div;
+       cube.position.z = 8  +  4*rem  ;
+       cube.castShadow = true;
+    
+     dailyCubes[cubeidx] = cube;
+
+     dynamicTexture.drawText(obj[0].usercount, 32, 256, 'black');
+     dynamicTexture.texture.needsUpdate  = true;
+
+      scene.add(dailyCubes[cubeidx]);       
+
+
+    
+    }
+    else {
+
+    scene.remove(dailyCubes[cubeid]);
+     }
+}
+
+
+function addRemoveCube (value, cubeid) {
+    if (value ) {
+
+      
+      var statsJSON = httpGet("/app.stats?appid="+cubeid);
+      var obj = JSON.parse(statsJSON); 
+
+      var  dynamicTexture  = new THREEx.DynamicTexture(512,512)
+      dynamicTexture.context.font	= "bolder 90px Verdana";
+      dynamicTexture.clear(cubeColors[cubeid]);
+
+     var  b_userCount = obj[0].usercount;
+     var height = (b_userCount*20)/r_interactions;
+
+
+      var cubeGeometry = new THREE.BoxGeometry(4, height, 4);
+      var cubeMaterial = new THREE.MeshLambertMaterial({ map : dynamicTexture.texture});
+//      var cubeMaterial = new THREE.MeshBasicMaterial({ map : dynamicTexture.texture, color: cubeColors[cubeid]});
+      var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+       cube.position.y = 4;
+       cube.position.z = 2;
+       cube.position.x = 8*cubeid+6;
+       cube.castShadow = true;
+    
+     cubes[cubeid] = cube;
+
+
+     dynamicTexture.drawText( obj[0].usercount, 32, 256, 'black');
+     dynamicTexture.texture.needsUpdate  = true;
+
+
+				       
+      scene.add(cubes[cubeid]);       
+
+
+    
+    }
+    else {
+
+    scene.remove(cubes[cubeid]);
+     }
+}
+
+
+
+
+function httpGet(theUrl)
+{
+    var xmlHttp = null;
+
+    xmlHttp = new XMLHttpRequest();
+    xmlHttp.open( "GET", theUrl, false );
+    xmlHttp.send( null );
+    return xmlHttp.responseText;
+}
+
+function    initOutputThroughthreejsGUI() {
+
+
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        scene = new THREE.Scene();
+
+        // create a camera, which defines where we're looking at.
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+//        cameraControl = new THREE.OrbitControls( camera );
+//        cameraControl.addEventListener( 'change', render );
+
+        // create a render, sets the background color and the size
+        renderer = new THREE.WebGLRenderer();
+        renderer.setClearColor(0x000000, 1.0);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMapEnabled = true;
+
+        // create the ground plane
+        var planeGeometry = new THREE.PlaneGeometry(80, 100);
+        var planeMaterial = new THREE.MeshLambertMaterial({color: 0xcccccc});
+        var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.receiveShadow = true;
+
+        // rotate and position the plane
+        plane.rotation.x = -0.5 * Math.PI;
+        plane.position.x = 0;
+        plane.position.y = -2;
+        plane.position.z = 0;
+
+        // add the plane to the scene
+        scene.add(plane);
+
+
+
+        // position and point the camera to the center of the scene
+        camera.position.x = 45;
+        camera.position.y = 16;
+        camera.position.z = 43;
+        camera.lookAt(scene.position);
+
+
+        // add spotlight for the shadows
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.position.set(100, 200, 20);
+        spotLight.shadowCameraNear = 200;
+        spotLight.shadowCameraFar = 500;
+        spotLight.castShadow = true;
+
+        scene.add(spotLight);
+
+
+        // add the output of the renderer to the html element
+        document.body.appendChild(renderer.domElement);
+
+        // call the render function, after the first render, interval is determined
+        // by requestAnimationFrame
+        render();
+
+
+}
+
+
+
+function render() {
+        // render using requestAnimationFrame
+        requestAnimationFrame(render);
+        renderer.render(scene, camera);
+}
+
+
+
+
+
+
+window.onload = function() {
+    numofapps = 5;
+    numofdays = 7;
+			    
+
+
+    cubes = ["", "", "", "", ""];
+    dailyCubes = [];
+
+    for (var i = 0; i < numofapps; i++) {
+      for (var j = 0; j < numofdays; j++)  {
+         dailyCubes.push("");
+      }
+   }
+             
+
+    selectedApps     = [0,0,0,0,0];
+			    
+
+    cubeColors = ["red", "white", "blue", "orange", "yellow"];
+
+			    
+   initInputThroughdatGUI();
+   initOutputThroughthreejsGUI();
+}
+
+
+
+
+</script>
+
+
+
+<div id="my-gui-container">
+</div>
+
+
+<div id="my-gui2-container">
+</div>
+
+
+<div id="my-gui3-container">
+</div>
+<div id="my-gui4-container">
+</div>
+
+ </body> 
+
+
+
+</html>
+

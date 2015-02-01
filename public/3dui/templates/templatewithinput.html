@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+
+<html> 
+  <head> 
+    <title>3D UI with Three.js  and DAT.GUI</title> 
+
+  </head> 
+  
+  <body bgcolor="#000000"> 
+
+        <script type="text/javascript" src="/static/js/three.js"></script>
+        <script type="text/javascript" src="/static/js/OrbitControls.js"></script>
+	<script type="text/javascript" src="/static/js/dat.gui.js"></script>
+
+<script type="text/javascript">
+
+    // global variables
+var renderer;
+var scene;
+var camera;
+var cameraControl;
+
+
+var InputControls = function() { 
+  this.users = '100000';
+  this.apps = 1;
+
+};
+
+
+function       initInputThroughdatGUI() {
+
+
+
+  var text = new InputControls();
+  var gui = new dat.GUI({ autoPlace: false });
+
+  gui.domElement.style.position='absolute';
+  gui.domElement.style.top='185px';
+  gui.domElement.style.left='20px'
+
+  var customContainer = document.getElementById('my-gui-container');
+  customContainer.appendChild(gui.domElement);
+
+  gui.add(text, 'users');
+  var apps = gui.add(text, 'apps', 0, 10);
+
+    apps.onFinishChange(function(value) {
+
+        var cubeGeometry = new THREE.BoxGeometry(6, 10, 6);
+        var cubeMaterial = new THREE.MeshLambertMaterial({color: 'red'});
+        var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.castShadow = true;
+
+        scene.add(cube);
+
+
+    });
+}
+
+
+function    initOutputThroughThreejs() {
+
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        scene = new THREE.Scene();
+
+        // create a render, sets the background color and the size
+        renderer = new THREE.WebGLRenderer();
+        renderer.setClearColor(0x000000, 1.0);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMapEnabled = true;
+
+
+
+        // create a camera, which defines where we're looking at.
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+
+
+        // position and point the camera to the center of the scene
+        camera.position.x = 45;
+        camera.position.y = 16;
+        camera.position.z = 43;
+        camera.lookAt(scene.position);
+
+
+        cameraControl = new THREE.OrbitControls( camera );
+        cameraControl.addEventListener( 'change', render );
+
+        // create the ground plane
+        var planeGeometry = new THREE.PlaneGeometry(20, 20);
+        var planeMaterial = new THREE.MeshLambertMaterial({color: 0xcccccc});
+        var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.receiveShadow = true;
+
+        // rotate and position the plane
+        plane.rotation.x = -0.5 * Math.PI;
+        plane.position.x = 0;
+        plane.position.y = -2;
+        plane.position.z = 0;
+
+        // add the plane to the scene
+        scene.add(plane);
+
+
+        // add spotlight for the shadows
+        var spotLight = new THREE.SpotLight(0xffffff);
+        spotLight.position.set(10, 20, 20);
+        spotLight.shadowCameraNear = 20;
+        spotLight.shadowCameraFar = 50;
+        spotLight.castShadow = true;
+
+        scene.add(spotLight);
+        document.body.appendChild(renderer.domElement);
+    
+
+        render();
+
+
+}
+
+function render() {
+        // render using requestAnimationFrame
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(render);
+}
+    
+
+window.onload = function() {
+
+
+   initOutputThroughThreejs();
+   initInputThroughdatGUI();
+  
+};
+
+
+
+</script>
+
+
+
+<div id="my-gui-container">
+</div>
+
+
+  </body> 
+
+</html>
+

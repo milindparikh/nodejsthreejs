@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+
+<html> 
+  <head> 
+    <title> DAT.GUI</title> 
+
+  </head> 
+  
+  <body bgcolor="#000000"> 
+
+        <script type="text/javascript" src="/static/js/three.js"></script>
+        <script type="text/javascript" src="/static/js/OrbitControls.js"></script>
+	<script type="text/javascript" src="/static/js/dat.gui.js"></script>
+
+<script type="text/javascript">
+
+
+
+var InputControls = function() { 
+  this.users = '100000';
+  this.apps = 1;
+
+};
+
+
+function       initInputThroughdatGUI() {
+
+
+
+  var text = new InputControls();
+  var gui = new dat.GUI({ autoPlace: false });
+
+  gui.domElement.style.position='absolute';
+  gui.domElement.style.top='185px';
+  gui.domElement.style.left='20px'
+
+  var customContainer = document.getElementById('my-gui-container');
+  customContainer.appendChild(gui.domElement);
+
+  gui.add(text, 'users');
+  var apps = gui.add(text, 'apps', 0, 10);
+
+    apps.onFinishChange(function(value) {
+
+        var cubeGeometry = new THREE.BoxGeometry(6, 10, 6);
+        var cubeMaterial = new THREE.MeshLambertMaterial({color: 'red'});
+        var cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.castShadow = true;
+
+        scene.add(cube);
+
+
+    });
+}
+
+    
+
+window.onload = function() {
+   initInputThroughdatGUI();
+};
+
+
+
+</script>
+
+
+
+<div id="my-gui-container">
+</div>
+<div id="contentframe" style="position:relative; top: 200px; left: 300px;">
+<iframe src="/static/3dui/templates/templatewiththreejsonly.html" width="1000" height="1000" frameborder="0" ></iframe>
+</div>
+  </body> 
+
+</html>
+
